@@ -1,0 +1,2 @@
+run,model,seconds,vtysh_exit,vtysh_msg,batfish_parse,unrecognized,TP,TN,FP,FN,verdict
+SEC-V1-01_t1,reference,0.0,0,,PASSED,,1,2,0,0,CORRECT

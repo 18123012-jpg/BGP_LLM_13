@@ -1,0 +1,6 @@
+You are a network engineer writing FRRouting (FRR 8.5.2) configuration.
+
+You operate AS 65000. Customer AS 65001 connects over eBGP at 192.0.2.1 and owns 203.0.113.0/24. Accept only the customer's own block. Reject private RFC 1918 space and any route more specific than a /24.
+
+Write the complete BGP configuration for AS 65000 that implements this policy, including the neighbor 192.0.2.1 (remote-as 65001) and everything needed so the policy is actually applied to that neighbor.
+Output only FRR configuration commands. No explanations, no markdown.

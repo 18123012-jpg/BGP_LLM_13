@@ -1,0 +1,2 @@
+run,model,seconds,vtysh_exit,vtysh_msg,batfish_parse,unrecognized,TP,TN,FP,FN,verdict
+SEC-V1-01_t1,qwen2.5-coder:7b,4.2,0,,PARTIALLY_UNRECOGNIZED,neighbor 192.0.2.1 prefix-list LIST-IN in [bgp_inner s_router_bgp statement frr_configuration] | neighbor 192.0.2.1 prefix-list LIST-OUT out [bgp_inner s_router_bgp statement frr_configuration],0,0,0,0,UNRESOLVED

@@ -1,0 +1,1382 @@
+[
+  {
+    "id": "SEC-V1-01",
+    "name": "RFC 1918 Private IPv4 Inbound Filtering",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65001,
+    "peer_ip": "192.0.2.1",
+    "invariant": "Nothing inside 10.0.0.0/8 or longer than /24 is accepted from AS 65001; 203.0.113.0/24 is accepted.",
+    "intent": "You operate AS 65000. Customer AS 65001 connects over eBGP at 192.0.2.1 and owns 203.0.113.0/24. Accept only the customer's own block. Reject private RFC 1918 space and any route more specific than a /24.",
+    "test_vectors": [
+      {
+        "prefix": "10.10.1.0/24",
+        "as_path": [
+          65001
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (10.0.0.0/8)"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65001
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "198.51.100.0/25",
+        "as_path": [
+          65001
+        ],
+        "expected_action": "DENIED",
+        "reason": "Longer than /24"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V1-02",
+    "name": "CGNAT and 172.16/12 Inbound Filtering",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65002,
+    "peer_ip": "192.0.2.2",
+    "invariant": "Nothing in 100.64.0.0/10 or 172.16.0.0/12 is accepted from AS 65002; 198.51.100.0/24 is accepted.",
+    "intent": "You operate AS 65000. Customer AS 65002 at 192.0.2.2 owns 198.51.100.0/24. Accept that block only. Shared carrier-grade NAT space and the middle private range must never be accepted.",
+    "test_vectors": [
+      {
+        "prefix": "100.64.10.0/24",
+        "as_path": [
+          65002
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 6598 (100.64.0.0/10)"
+      },
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          65002
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "172.16.5.0/24",
+        "as_path": [
+          65002
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (172.16.0.0/12)"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V1-03",
+    "name": "Loopback and Link-Local Inbound Filtering",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "peer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65003,
+    "peer_ip": "192.0.2.3",
+    "invariant": "Nothing in 127.0.0.0/8 or 169.254.0.0/16 is accepted from AS 65003; 203.0.113.0/24 is accepted.",
+    "intent": "You operate AS 65000 and peer settlement-free with AS 65003 at 192.0.2.3. The peer announces 203.0.113.0/24. Accept that, but reject loopback and link-local address space.",
+    "test_vectors": [
+      {
+        "prefix": "127.0.0.0/24",
+        "as_path": [
+          65003
+        ],
+        "expected_action": "DENIED",
+        "reason": "Loopback 127.0.0.0/8"
+      },
+      {
+        "prefix": "169.254.1.0/24",
+        "as_path": [
+          65003
+        ],
+        "expected_action": "DENIED",
+        "reason": "Link-local 169.254.0.0/16"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65003
+        ],
+        "expected_action": "PERMITTED"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V1-04",
+    "name": "Multicast and Class E Inbound Filtering",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "transit",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65004,
+    "peer_ip": "192.0.2.4",
+    "invariant": "No multicast (224.0.0.0/4) or reserved class E (240.0.0.0/4) prefix is accepted from transit AS 65004.",
+    "intent": "You operate AS 65000 and buy transit from AS 65004 at 192.0.2.4. Take ordinary unicast routes up to a /24 but never accept multicast or reserved experimental space.",
+    "test_vectors": [
+      {
+        "prefix": "224.0.0.0/24",
+        "as_path": [
+          65004
+        ],
+        "expected_action": "DENIED",
+        "reason": "Multicast 224.0.0.0/4"
+      },
+      {
+        "prefix": "240.0.0.0/24",
+        "as_path": [
+          65004
+        ],
+        "expected_action": "DENIED",
+        "reason": "Reserved class E 240.0.0.0/4"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65004,
+          15169
+        ],
+        "expected_action": "PERMITTED"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V1-05",
+    "name": "Benchmarking and Protocol-Assignment Ranges",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "ixp",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65005,
+    "peer_ip": "192.0.2.5",
+    "invariant": "Nothing in 198.18.0.0/15 or 192.0.0.0/24 is accepted from AS 65005 at the exchange.",
+    "intent": "You operate AS 65000 at an internet exchange and receive routes from AS 65005 at 192.0.2.5. Reject the network-benchmarking range and the IETF protocol-assignment block; accept ordinary customer space.",
+    "test_vectors": [
+      {
+        "prefix": "198.18.4.0/24",
+        "as_path": [
+          65005
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 2544 (198.18.0.0/15)"
+      },
+      {
+        "prefix": "192.0.0.0/24",
+        "as_path": [
+          65005
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 6890 IETF protocol assignments"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65005
+        ],
+        "expected_action": "PERMITTED"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V1-06",
+    "name": "Prefix Length Boundary /24 versus /25",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65006,
+    "peer_ip": "192.0.2.6",
+    "invariant": "Only the exact /24 203.0.113.0/24 is accepted from AS 65006; any more-specific is rejected.",
+    "intent": "You operate AS 65000. Customer AS 65006 at 192.0.2.6 is assigned 203.0.113.0/24. Accept the whole block as announced but refuse any smaller pieces of it.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65006
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/25",
+        "as_path": [
+          65006
+        ],
+        "expected_action": "DENIED",
+        "reason": "Longer than /24"
+      },
+      {
+        "prefix": "203.0.113.128/25",
+        "as_path": [
+          65006
+        ],
+        "expected_action": "DENIED",
+        "reason": "Longer than /24"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V1-07",
+    "name": "Default Route Rejection",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "peer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65007,
+    "peer_ip": "192.0.2.7",
+    "invariant": "The default route and private space are never accepted from AS 65007.",
+    "intent": "You operate AS 65000 and peer with AS 65007 at 192.0.2.7. The peer must not hand you a default route or any private space; accept its real customer block 203.0.113.0/24.",
+    "test_vectors": [
+      {
+        "prefix": "0.0.0.0/0",
+        "as_path": [
+          65007
+        ],
+        "expected_action": "DENIED",
+        "reason": "Default route"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65007
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "10.0.0.0/8",
+        "as_path": [
+          65007
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (10.0.0.0/8)"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V1-08",
+    "name": "Customer Allocation Whitelist",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65008,
+    "peer_ip": "192.0.2.8",
+    "invariant": "Only 203.0.113.0/24 and 198.51.100.0/24 are accepted from AS 65008; all other space is rejected.",
+    "intent": "You operate AS 65000. Customer AS 65008 at 192.0.2.8 holds exactly two blocks: 203.0.113.0/24 and 198.51.100.0/24. Accept those and nothing else, even if the prefix looks legitimate.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65008
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          65008
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "8.8.8.0/24",
+        "as_path": [
+          65008
+        ],
+        "expected_action": "DENIED",
+        "reason": "Not in customer allocation"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V1-09",
+    "name": "Private Space Egress to Transit",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "transit",
+    "direction": "outbound",
+    "local_as": 65000,
+    "peer_as": 65009,
+    "peer_ip": "192.0.2.9",
+    "invariant": "Only 203.0.113.0/24 is announced to transit AS 65009; private space is never announced.",
+    "intent": "You operate AS 65000 and announce routes to your upstream AS 65009 at 192.0.2.9. Announce only your own block 203.0.113.0/24 and never leak internal private space.",
+    "test_vectors": [
+      {
+        "prefix": "10.20.0.0/16",
+        "as_path": [],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (10.0.0.0/8)"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [],
+        "expected_action": "PERMITTED"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V1-10",
+    "name": "Exchange Bogon Sweep",
+    "vector_category": "bogon_rfc1918_prefix_filtering",
+    "peering_type": "ixp",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65010,
+    "peer_ip": "192.0.2.10",
+    "invariant": "No 192.168.0.0/16 prefix is accepted from AS 65010; 198.51.100.0/24 is accepted.",
+    "intent": "You operate AS 65000 at an exchange. AS 65010 at 192.0.2.10 announces 198.51.100.0/24. Accept it, and reject the home-network private range if it ever appears.",
+    "test_vectors": [
+      {
+        "prefix": "192.168.50.0/24",
+        "as_path": [
+          65010
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (192.168.0.0/16)"
+      },
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          65010
+        ],
+        "expected_action": "PERMITTED"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-11",
+    "name": "Stub Customer Origin Only",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65011,
+    "peer_ip": "192.0.2.11",
+    "invariant": "Only a path consisting solely of AS 65011 is accepted from 192.0.2.11.",
+    "intent": "You operate AS 65000. AS 65011 is a stub customer at 192.0.2.11. Accept a route only if the customer originated it itself with nothing else in the path; reject anything else.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65011
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          3356,
+          65011
+        ],
+        "expected_action": "DENIED",
+        "reason": "Path transits another AS"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-12",
+    "name": "Prepending Customer",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65012,
+    "peer_ip": "192.0.2.12",
+    "invariant": "Paths made only of AS 65012, repeated any number of times, are accepted; paths originated elsewhere are rejected.",
+    "intent": "You operate AS 65000. Customer AS 65012 at 192.0.2.12 sometimes repeats its own AS number for traffic engineering. Allow that, but reject any route the customer did not originate.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65012,
+          65012
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65012,
+          3356
+        ],
+        "expected_action": "DENIED",
+        "reason": "Origin is not the customer"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-13",
+    "name": "Customer Cone",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65013,
+    "peer_ip": "192.0.2.13",
+    "invariant": "Routes originated by AS 65013 or its downstream customer AS 65100 are accepted; other origins are rejected.",
+    "intent": "You operate AS 65000. Customer AS 65013 at 192.0.2.13 also provides transit to its own customer AS 65100. Accept routes originated by either, and reject routes originated by anyone else.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65013
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65013,
+          65100
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65013,
+          3356
+        ],
+        "expected_action": "DENIED",
+        "reason": "Origin outside customer cone"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-14",
+    "name": "Lateral Peer Without Tier-1",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "peer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65014,
+    "peer_ip": "192.0.2.14",
+    "invariant": "Any path from AS 65014 containing AS 701, 174 or 3356 is rejected.",
+    "intent": "You operate AS 65000 and peer settlement-free with AS 65014 at 192.0.2.14. A lateral peer must never carry the large tier-1 transit networks 701, 174 or 3356; reject any route whose path mentions them.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65014
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65014,
+          174
+        ],
+        "expected_action": "DENIED",
+        "reason": "Tier-1 ASN 174 via lateral peer"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65014,
+          701,
+          65200
+        ],
+        "expected_action": "DENIED",
+        "reason": "Tier-1 ASN 701 mid-path"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-15",
+    "name": "Look-Alike ASN Rejection",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65015,
+    "peer_ip": "192.0.2.15",
+    "invariant": "Only the exact path AS 65015 is accepted; an ASN that merely starts with the same digits is rejected.",
+    "intent": "You operate AS 65000. Customer AS 65015 at 192.0.2.15 must be the sole AS in the path. Be careful: a different network whose AS number begins with the same digits must not be accepted.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65015
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          650151
+        ],
+        "expected_action": "DENIED",
+        "reason": "Look-alike ASN (peer ASN + extra digit)"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-16",
+    "name": "Private ASN in Transit Path",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "transit",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65016,
+    "peer_ip": "192.0.2.16",
+    "invariant": "Paths from transit AS 65016 containing a private ASN in 64512-65534 are rejected.",
+    "intent": "You operate AS 65000 and buy transit from AS 65016 at 192.0.2.16. Reject any route whose path contains an AS number from the private-use range.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65016,
+          15169
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65016,
+          64600
+        ],
+        "expected_action": "DENIED",
+        "reason": "Private ASN 64600 in path"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-17",
+    "name": "Excessive Path Length",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "transit",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65017,
+    "peer_ip": "192.0.2.17",
+    "invariant": "Paths longer than 10 hops from AS 65017 are rejected.",
+    "intent": "You operate AS 65000 and receive routes from transit AS 65017 at 192.0.2.17. Reject any route whose AS path is longer than ten hops; normal short paths are fine.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65017,
+          3356,
+          174,
+          701,
+          1299,
+          2914
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65017,
+          3356,
+          174,
+          701,
+          1299,
+          2914,
+          6453,
+          6762,
+          3257,
+          1273,
+          4134
+        ],
+        "expected_action": "DENIED",
+        "reason": "11 hops, longer than 10"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-18",
+    "name": "Egress Own Routes Only",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "peer",
+    "direction": "outbound",
+    "local_as": 65000,
+    "peer_as": 65018,
+    "peer_ip": "192.0.2.18",
+    "invariant": "Only locally originated routes (empty AS path) are announced to AS 65018.",
+    "intent": "You operate AS 65000 and announce routes to lateral peer AS 65018 at 192.0.2.18. Send only routes that your own network originated; never re-announce routes learned from a provider.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          3356
+        ],
+        "expected_action": "DENIED",
+        "reason": "Learned from provider, must not leak"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-19",
+    "name": "AS Loop Prevention",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "transit",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65019,
+    "peer_ip": "192.0.2.19",
+    "invariant": "Paths from AS 65019 that already contain AS 65000 are rejected.",
+    "intent": "You operate AS 65000 and receive routes from transit AS 65019 at 192.0.2.19. Reject any route whose path already includes your own AS number.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65019,
+          15169
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65019,
+          65000,
+          15169
+        ],
+        "expected_action": "DENIED",
+        "reason": "Own ASN in path (loop)"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V2-20",
+    "name": "Exchange First-AS Enforcement",
+    "vector_category": "as_path_origin_regex",
+    "peering_type": "ixp",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65020,
+    "peer_ip": "192.0.2.20",
+    "invariant": "The first AS in every path from 192.0.2.20 must be AS 65020.",
+    "intent": "You operate AS 65000 at an internet exchange. Neighbor AS 65020 at 192.0.2.20 must be the leftmost AS in every path it sends. Reject routes whose first AS is anyone else.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65020
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65020,
+          13335
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          13335,
+          65020
+        ],
+        "expected_action": "DENIED",
+        "reason": "First AS is not the neighbor"
+      }
+    ]
+  },
+  {
+    "id": "SEC-V3-21",
+    "name": "Stub Customer Hard Limit with Restart",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65021,
+    "peer_ip": "192.0.2.21",
+    "invariant": "Neighbor 192.0.2.21 is limited to 100 prefixes, warns at 80%, restarts after 15 minutes; only the /24 203.0.113.0/24 is accepted.",
+    "intent": "You operate AS 65000. Stub customer AS 65021 at 192.0.2.21 should only ever send tens of routes. Cap how many prefixes it may send at 100: log a warning at 80 percent, tear the session down above 100, and let it retry after 15 minutes. Also accept only its block 203.0.113.0/24 and nothing more specific.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65021
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/25",
+        "as_path": [
+          65021
+        ],
+        "expected_action": "DENIED",
+        "reason": "Longer than /24"
+      }
+    ],
+    "static_assertions": [
+      "neighbor 192\\.0\\.2\\.21 maximum-prefix 100 80 restart 15\\b"
+    ]
+  },
+  {
+    "id": "SEC-V3-22",
+    "name": "Peer Warning-Only Monitoring",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "peer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65022,
+    "peer_ip": "192.0.2.22",
+    "invariant": "Neighbor 192.0.2.22 is limited to 500 prefixes with warning only at 90%; session is never torn down.",
+    "intent": "You operate AS 65000 and peer with AS 65022 at 192.0.2.22. Allow up to 500 prefixes and log a warning at 90 percent, but never tear the session down. Reject private space from this peer.",
+    "test_vectors": [
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          65022
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "10.0.0.0/8",
+        "as_path": [
+          65022
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (10.0.0.0/8)"
+      }
+    ],
+    "static_assertions": [
+      "neighbor 192\\.0\\.2\\.22 maximum-prefix 500 90 warning-only\\b"
+    ]
+  },
+  {
+    "id": "SEC-V3-23",
+    "name": "Transit Full-Table Limit",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "transit",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65023,
+    "peer_ip": "192.0.2.23",
+    "invariant": "Neighbor 192.0.2.23 is limited to 1,000,000 prefixes, warns at 85%, restarts after 30 minutes; default route rejected.",
+    "intent": "You operate AS 65000 and buy a full table from transit AS 65023 at 192.0.2.23. Set the ceiling at one million prefixes, warn at 85 percent, tear down above the ceiling and retry after 30 minutes. Do not accept a default route.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65023,
+          15169
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "0.0.0.0/0",
+        "as_path": [
+          65023
+        ],
+        "expected_action": "DENIED",
+        "reason": "Default route"
+      }
+    ],
+    "static_assertions": [
+      "neighbor 192\\.0\\.2\\.23 maximum-prefix 1000000 85 restart 30\\b"
+    ]
+  },
+  {
+    "id": "SEC-V3-24",
+    "name": "Exchange Peer Limit with Long Restart",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "ixp",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65024,
+    "peer_ip": "192.0.2.24",
+    "invariant": "Neighbor 192.0.2.24 is limited to 2000 prefixes, warns at 75%, restarts after 60 minutes; CGNAT space rejected.",
+    "intent": "You operate AS 65000 at an exchange. AS 65024 at 192.0.2.24 may send at most 2000 prefixes: warn at 75 percent, tear down above the limit and wait an hour before retrying. Reject shared carrier-grade NAT space.",
+    "test_vectors": [
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          65024
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "100.64.0.0/10",
+        "as_path": [
+          65024
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 6598 (100.64.0.0/10)"
+      }
+    ],
+    "static_assertions": [
+      "neighbor 192\\.0\\.2\\.24 maximum-prefix 2000 75 restart 60\\b"
+    ]
+  },
+  {
+    "id": "SEC-V3-25",
+    "name": "Peer-Group Inheritance",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65025,
+    "peer_ip": "192.0.2.25",
+    "invariant": "Every member of peer group CUSTOMERS (192.0.2.25 and 192.0.2.200) is limited to 50 prefixes with warning at 80%.",
+    "intent": "You operate AS 65000. Two customer sessions, 192.0.2.25 and 192.0.2.200, both belong to AS 65025 and share one template named CUSTOMERS. Put the prefix ceiling of 50 with an 80 percent warning on that template so both sessions inherit it. Reject multicast space.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65025
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "224.0.0.0/24",
+        "as_path": [
+          65025
+        ],
+        "expected_action": "DENIED",
+        "reason": "Multicast 224.0.0.0/4"
+      }
+    ],
+    "extra_peer_ips": [
+      "192.0.2.200"
+    ],
+    "static_assertions": [
+      "neighbor CUSTOMERS maximum-prefix 50 80\\b",
+      "neighbor 192\\.0\\.2\\.25 peer-group CUSTOMERS\\b",
+      "neighbor 192\\.0\\.2\\.200 peer-group CUSTOMERS\\b"
+    ]
+  },
+  {
+    "id": "SEC-V3-26",
+    "name": "Per-Neighbor Override of Group Limit",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "peer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65026,
+    "peer_ip": "192.0.2.26",
+    "invariant": "Group PEERS has a 100-prefix limit; neighbor 192.0.2.26 overrides it to 500.",
+    "intent": "You operate AS 65000. A template named PEERS carries a default ceiling of 100 prefixes. Neighbor 192.0.2.26 (AS 65026) is a bigger peer that is a member of PEERS but needs its own ceiling of 500. Reject link-local space from it.",
+    "test_vectors": [
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          65026
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "169.254.0.0/16",
+        "as_path": [
+          65026
+        ],
+        "expected_action": "DENIED",
+        "reason": "Link-local 169.254.0.0/16"
+      }
+    ],
+    "static_assertions": [
+      "neighbor PEERS maximum-prefix 100\\b",
+      "neighbor 192\\.0\\.2\\.26 peer-group PEERS\\b",
+      "neighbor 192\\.0\\.2\\.26 maximum-prefix 500\\b"
+    ]
+  },
+  {
+    "id": "SEC-V3-27",
+    "name": "Route-Flap Damping",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65027,
+    "peer_ip": "192.0.2.27",
+    "invariant": "Flap damping is configured with half-life 15, reuse 750, suppress 2000, max-suppress 60; only the /24 is accepted.",
+    "intent": "You operate AS 65000. Customer AS 65027 at 192.0.2.27 has an unstable link that keeps flapping its route. Enable route-flap damping with a 15 minute half-life, reuse threshold 750, suppress threshold 2000 and a maximum suppress time of 60 minutes. Accept only its /24 block and nothing smaller.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65027
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "203.0.113.0/26",
+        "as_path": [
+          65027
+        ],
+        "expected_action": "DENIED",
+        "reason": "Longer than /24"
+      }
+    ],
+    "static_assertions": [
+      "bgp dampening 15 750 2000 60\\b"
+    ]
+  },
+  {
+    "id": "SEC-V3-28",
+    "name": "Tiny Stub Strict Cap",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65028,
+    "peer_ip": "192.0.2.28",
+    "invariant": "Neighbor 192.0.2.28 is limited to 10 prefixes with the default warning and no automatic restart.",
+    "intent": "You operate AS 65000. Customer AS 65028 at 192.0.2.28 announces a single small block. Allow no more than 10 prefixes and tear the session down above that without any automatic retry. Reject private space.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65028
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "172.20.0.0/16",
+        "as_path": [
+          65028
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (172.16.0.0/12)"
+      }
+    ],
+    "static_assertions": [
+      "(?m)neighbor 192\\.0\\.2\\.28 maximum-prefix 10$"
+    ]
+  },
+  {
+    "id": "SEC-V3-29",
+    "name": "Peer Limit with 30 Minute Restart",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "peer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65029,
+    "peer_ip": "192.0.2.29",
+    "invariant": "Neighbor 192.0.2.29 is limited to 250 prefixes with a 30-minute restart; /25s and link-local rejected.",
+    "intent": "You operate AS 65000 and peer with AS 65029 at 192.0.2.29. Allow at most 250 prefixes; if exceeded, drop the session and let it come back after 30 minutes. Accept ordinary /24 space but reject anything more specific and link-local space.",
+    "test_vectors": [
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          65029
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "198.51.100.0/25",
+        "as_path": [
+          65029
+        ],
+        "expected_action": "DENIED",
+        "reason": "Longer than /24"
+      },
+      {
+        "prefix": "169.254.0.0/16",
+        "as_path": [
+          65029
+        ],
+        "expected_action": "DENIED",
+        "reason": "Link-local 169.254.0.0/16"
+      }
+    ],
+    "static_assertions": [
+      "neighbor 192\\.0\\.2\\.29 maximum-prefix 250( \\d+)? restart 30\\b"
+    ]
+  },
+  {
+    "id": "SEC-V3-30",
+    "name": "Large Customer Cone Limit",
+    "vector_category": "max_prefix_restart_throttling",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65030,
+    "peer_ip": "192.0.2.30",
+    "invariant": "Neighbor 192.0.2.30 is limited to 5000 prefixes, warns at 70%, restarts after 15 minutes; class E space rejected.",
+    "intent": "You operate AS 65000. Customer AS 65030 at 192.0.2.30 has a large downstream cone. Allow up to 5000 prefixes, warn at 70 percent, tear down above the limit and retry after 15 minutes. Reject reserved experimental space.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65030
+        ],
+        "expected_action": "PERMITTED"
+      },
+      {
+        "prefix": "240.0.0.0/24",
+        "as_path": [
+          65030
+        ],
+        "expected_action": "DENIED",
+        "reason": "Reserved class E 240.0.0.0/4"
+      }
+    ],
+    "static_assertions": [
+      "neighbor 192\\.0\\.2\\.30 maximum-prefix 5000 70 restart 15\\b"
+    ]
+  },
+  {
+    "id": "SEC-V4-31",
+    "name": "Ingress Replace Customer Communities",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65031,
+    "peer_ip": "192.0.2.31",
+    "invariant": "Routes accepted from AS 65031 carry exactly community 65000:1001; the customer's own tags are discarded.",
+    "intent": "You operate AS 65000. Customer AS 65031 at 192.0.2.31 owns 203.0.113.0/24 and attaches its own control tags. On import, throw away whatever tags the customer set and mark the route only with your internal customer tag 65000:1001. Reject private space.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65031
+        ],
+        "expected_action": "PERMITTED",
+        "communities": [
+          "65001:120",
+          "65000:80"
+        ],
+        "expected_communities": [
+          "65000:1001"
+        ]
+      },
+      {
+        "prefix": "10.5.0.0/16",
+        "as_path": [
+          65031
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (10.0.0.0/8)",
+        "communities": []
+      }
+    ]
+  },
+  {
+    "id": "SEC-V4-32",
+    "name": "Egress Scrub of Internal Communities",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "transit",
+    "direction": "outbound",
+    "local_as": 65000,
+    "peer_as": 65032,
+    "peer_ip": "192.0.2.32",
+    "invariant": "Routes announced to transit AS 65032 carry no 65000:* community.",
+    "intent": "You operate AS 65000 and announce routes to your upstream AS 65032 at 192.0.2.32. Strip every community in your own 65000 namespace before the route leaves. Never announce private space.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [],
+        "expected_action": "PERMITTED",
+        "communities": [
+          "65000:1001",
+          "65000:200"
+        ],
+        "expected_communities": []
+      },
+      {
+        "prefix": "10.20.0.0/16",
+        "as_path": [],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (10.0.0.0/8)",
+        "communities": [
+          "65000:1001"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SEC-V4-33",
+    "name": "NO_EXPORT Tagging for Peer Routes",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "peer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65033,
+    "peer_ip": "192.0.2.33",
+    "invariant": "Routes accepted from AS 65033 carry the well-known no-export community 65535:65281.",
+    "intent": "You operate AS 65000 and peer with AS 65033 at 192.0.2.33. Mark everything learned from this peer so it stays inside your network and is never passed to other neighbors. Reject shared carrier-grade NAT space.",
+    "test_vectors": [
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          65033
+        ],
+        "expected_action": "PERMITTED",
+        "communities": [],
+        "expected_communities": [
+          "65535:65281"
+        ]
+      },
+      {
+        "prefix": "100.64.0.0/10",
+        "as_path": [
+          65033
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 6598 (100.64.0.0/10)",
+        "communities": []
+      }
+    ]
+  },
+  {
+    "id": "SEC-V4-34",
+    "name": "Customer Blackhole Request",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65034,
+    "peer_ip": "192.0.2.34",
+    "invariant": "A /32 inside 203.0.113.0/24 tagged 65535:666 is accepted and also tagged 65535:65281; other /32s are rejected.",
+    "intent": "You operate AS 65000. Customer AS 65034 at 192.0.2.34 owns 203.0.113.0/24 and may ask you to drop traffic to a single host by sending that /32 with the standard blackhole community. Accept such requests only for addresses inside its own block, keep the blackhole community, and make sure the route cannot leave your network.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.55/32",
+        "as_path": [
+          65034
+        ],
+        "expected_action": "PERMITTED",
+        "communities": [
+          "65535:666"
+        ],
+        "expected_communities": [
+          "65535:666",
+          "65535:65281"
+        ]
+      },
+      {
+        "prefix": "198.51.100.55/32",
+        "as_path": [
+          65034
+        ],
+        "expected_action": "DENIED",
+        "reason": "Not in customer allocation",
+        "communities": [
+          "65535:666"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SEC-V4-35",
+    "name": "Large Community Replacement",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65035,
+    "peer_ip": "192.0.2.35",
+    "invariant": "Routes accepted from AS 65035 carry only large community 65000:1:100; customer large communities are discarded.",
+    "intent": "You operate AS 65000. Customer AS 65035 at 192.0.2.35 attaches 3-part large communities of its own. Discard them on import and mark the route with your large community 65000:1:100. Reject the home-network private range.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65035
+        ],
+        "expected_action": "PERMITTED",
+        "communities": [
+          "65001:100:1"
+        ],
+        "expected_communities": [
+          "65000:1:100"
+        ]
+      },
+      {
+        "prefix": "192.168.7.0/24",
+        "as_path": [
+          65035
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (192.168.0.0/16)",
+        "communities": []
+      }
+    ]
+  },
+  {
+    "id": "SEC-V4-36",
+    "name": "Customer Local-Preference Control",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65036,
+    "peer_ip": "192.0.2.36",
+    "invariant": "Only community 65000:80 is honored from AS 65036 and sets local-preference 80; 65000:200 is discarded.",
+    "intent": "You operate AS 65000. Customer AS 65036 at 192.0.2.36 may ask for a backup role by sending community 65000:80, which lowers the route's local preference to 80. It may not ask for anything higher: discard any other community in your namespace, such as 65000:200. Reject routes more specific than a /24.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65036
+        ],
+        "expected_action": "PERMITTED",
+        "communities": [
+          "65000:80",
+          "65000:200"
+        ],
+        "expected_communities": [
+          "65000:80"
+        ],
+        "expected_local_pref": 80
+      },
+      {
+        "prefix": "203.0.113.0/25",
+        "as_path": [
+          65036
+        ],
+        "expected_action": "DENIED",
+        "reason": "Longer than /24",
+        "communities": []
+      }
+    ]
+  },
+  {
+    "id": "SEC-V4-37",
+    "name": "Additive Region Tag",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "customer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65037,
+    "peer_ip": "192.0.2.37",
+    "invariant": "Routes accepted from AS 65037 keep the customer's informational tag 65001:777 and gain region tag 65000:2001.",
+    "intent": "You operate AS 65000. Customer AS 65037 at 192.0.2.37 attaches an informational tag 65001:777 that you want to keep. Add your own region tag 65000:2001 without removing the customer's tag. Reject the upper private range.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [
+          65037
+        ],
+        "expected_action": "PERMITTED",
+        "communities": [
+          "65001:777"
+        ],
+        "expected_communities": [
+          "65001:777",
+          "65000:2001"
+        ]
+      },
+      {
+        "prefix": "172.31.0.0/16",
+        "as_path": [
+          65037
+        ],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (172.16.0.0/12)",
+        "communities": []
+      }
+    ]
+  },
+  {
+    "id": "SEC-V4-38",
+    "name": "Scrub Internal Tags but Keep Upstream Signal",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "transit",
+    "direction": "outbound",
+    "local_as": 65000,
+    "peer_as": 65038,
+    "peer_ip": "192.0.2.38",
+    "invariant": "Routes announced to AS 65038 lose all 65000:* communities except 65000:9999, which is meant for the upstream.",
+    "intent": "You operate AS 65000 and announce routes to upstream AS 65038 at 192.0.2.38. Remove your internal communities from the 65000 namespace before announcing, but keep the single tag 65000:9999 because the upstream acts on it. Never announce private space.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [],
+        "expected_action": "PERMITTED",
+        "communities": [
+          "65000:1001",
+          "65000:9999"
+        ],
+        "expected_communities": [
+          "65000:9999"
+        ]
+      },
+      {
+        "prefix": "10.30.0.0/16",
+        "as_path": [],
+        "expected_action": "DENIED",
+        "reason": "RFC 1918 (10.0.0.0/8)",
+        "communities": []
+      }
+    ]
+  },
+  {
+    "id": "SEC-V4-39",
+    "name": "Graceful Shutdown Handling",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "peer",
+    "direction": "inbound",
+    "local_as": 65000,
+    "peer_as": 65039,
+    "peer_ip": "192.0.2.39",
+    "invariant": "Routes from AS 65039 carrying 65535:0 are accepted with local-preference 0 and keep the community.",
+    "intent": "You operate AS 65000 and peer with AS 65039 at 192.0.2.39. When the peer announces that it is going down for maintenance using the standard graceful-shutdown community, make that route the least preferred and keep the community. Reject multicast space.",
+    "test_vectors": [
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [
+          65039
+        ],
+        "expected_action": "PERMITTED",
+        "communities": [
+          "65535:0"
+        ],
+        "expected_communities": [
+          "65535:0"
+        ],
+        "expected_local_pref": 0
+      },
+      {
+        "prefix": "224.1.0.0/24",
+        "as_path": [
+          65039
+        ],
+        "expected_action": "DENIED",
+        "reason": "Multicast 224.0.0.0/4",
+        "communities": []
+      }
+    ]
+  },
+  {
+    "id": "SEC-V4-40",
+    "name": "Customer-Only Tag Must Not Reach Transit",
+    "vector_category": "community_scrubbing_tagging",
+    "peering_type": "transit",
+    "direction": "outbound",
+    "local_as": 65000,
+    "peer_as": 65040,
+    "peer_ip": "192.0.2.40",
+    "invariant": "Routes tagged 65000:3 are never announced to AS 65040; untagged own routes are announced unchanged.",
+    "intent": "You operate AS 65000 and announce routes to upstream AS 65040 at 192.0.2.40. Routes carrying your internal customer-only tag 65000:3 must never be sent to the upstream. All other own routes go out unchanged.",
+    "test_vectors": [
+      {
+        "prefix": "203.0.113.0/24",
+        "as_path": [],
+        "expected_action": "PERMITTED",
+        "communities": [],
+        "expected_communities": []
+      },
+      {
+        "prefix": "198.51.100.0/24",
+        "as_path": [],
+        "expected_action": "DENIED",
+        "reason": "Tagged customer-only, must not go to transit",
+        "communities": [
+          "65000:3"
+        ]
+      }
+    ]
+  }
+]

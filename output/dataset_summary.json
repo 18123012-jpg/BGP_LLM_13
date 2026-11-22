@@ -1,0 +1,27 @@
+{
+  "status": "PASSED",
+  "errors": [],
+  "scenarios": 40,
+  "test_vectors": 92,
+  "vectors_per_category": {
+    "V1": 28,
+    "V2": 23,
+    "V3": 21,
+    "V4": 20
+  },
+  "expected_action_split": {
+    "DENIED": 49,
+    "PERMITTED": 43
+  },
+  "peering_types": {
+    "customer": 18,
+    "peer": 9,
+    "transit": 9,
+    "ixp": 4
+  },
+  "directions": {
+    "inbound": 35,
+    "outbound": 5
+  },
+  "dataset_sha256": "9448401360a8d780a71a25daa566ebf2ad730e22e99ae1abf2623a66baecb8f8"
+}
