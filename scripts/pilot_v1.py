@@ -32,6 +32,7 @@ from pybatfish.datamodel.route import BgpRoute
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_batfish import label, policy_for, wrap_cumulus  # reuse the proven Tier-2 helpers
+from normalize_frr import normalize  # neighbor prefix-list -> equivalent route-map before Tier 2
 
 OLLAMA = "http://localhost:11434/api/generate"
 NUM_CTX = 4096  # same for every model so the runs are comparable
@@ -175,12 +176,21 @@ def main():
             print(f"  Tier 1 vtysh -C: exit {code}" + (f" | {msg}" if msg else ""))
             row = {"run": run, "model": a.model, "seconds": secs, "vtysh_exit": code,
                    "vtysh_msg": msg, "batfish_parse": "", "unrecognized": "", "TP": 0, "TN": 0,
-                   "FP": 0, "FN": 0, "verdict": ""}
+                   "FP": 0, "FN": 0, "verdict": "", "normalized": 0, "norm_log": ""}
             if code != 0:
                 row["verdict"] = "SYNTAX_FAIL"
                 print("  -> stops here: Tier 2 is only run for configs that pass Tier 1")
             else:
-                labels, status, unrec, note = tier2(bf, cfg, sc, run.lower().replace("_", "-"))
+                # Tier 1 judged the model's own text. Before Tier 2, rewrite neighbor-level
+                # prefix-lists into equivalent route-maps (Batfish grades named route policies).
+                cfg2, norm_log = normalize(cfg)
+                rewritten = sum(1 for x in norm_log if x["action"].startswith("rewritten"))
+                row["normalized"] = rewritten
+                row["norm_log"] = json.dumps(norm_log, separators=(",", ":")) if norm_log else ""
+                if norm_log:
+                    (outdir / f"{run}.norm.conf").write_text(cfg2)
+                    print(f"  normalizer: {rewritten} rewritten, {len(norm_log) - rewritten} kept (see {run}.norm.conf)")
+                labels, status, unrec, note = tier2(bf, cfg2, sc, run.lower().replace("_", "-"))
                 row["batfish_parse"] = status
                 row["unrecognized"] = " | ".join(unrec)
                 if labels is None:
